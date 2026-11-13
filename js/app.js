@@ -59,7 +59,7 @@
 
   // ---------------- saving ----------------
   function persist() {
-    const ok = Store.save(data);
+    const ok = Store.save(data, view === 'desk' && book ? book.id : null);
     const st = $('save-status');
     st.classList.toggle('dirty', false);
     st.classList.toggle('err', !ok);
@@ -67,20 +67,59 @@
     if (!ok) toast('Could not save. Browser storage is full. Back up your library and delete old save points.', null, 6000);
     return ok;
   }
+  let askedPersist = false;
   function touch() {
     if (book) book.updated = Date.now();
+    if (!askedPersist) { askedPersist = true; Store.requestPersistence(); }
     const st = $('save-status');
     st.classList.add('dirty');
     st.textContent = 'Saving…';
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { persist(); updateMeta(true); }, 500);
   }
-  window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); Store.save(data); });
+  // Save straight away whenever the page might be going away (closing the tab, switching apps on a phone).
+  function flush() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; persist(); } }
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+
+  // ---------------- more than one tab ----------------
+  // Only one tab may type into a book at a time, so an old tab can never overwrite newer writing.
+  const TAB_ID = uid();
+  const channel = 'BroadcastChannel' in window ? new BroadcastChannel('inkwell') : null;
+  let lockedOut = false;
+  function claimBook(id) { lockedOut = false; $('tab-lock').hidden = true; channel && channel.postMessage({ type: 'claim', id, tab: TAB_ID }); }
+  if (channel) channel.onmessage = (e) => {
+    const m = e.data || {};
+    if (m.type === 'claim' && m.tab !== TAB_ID && view === 'desk' && book && book.id === m.id) {
+      flush();
+      lockedOut = true;
+      $('tab-lock').hidden = false;
+    }
+  };
+  // Another tab saved: pick up its changes while this tab is only showing the shelf.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== Store.KEY || view !== 'library' || saveTimer) return;
+    const fresh = Store.load();
+    if (fresh) { fresh.settings = data.settings; data = fresh; renderLibrary(); }
+  });
 
   // =====================================================================
   //   LIBRARY
   // =====================================================================
+  function renderBackupNote() {
+    const words = data.books.reduce((n, b) => n + countWords(b.pages), 0);
+    const last = data.lastBackup;
+    const stale = words > 30 && (!last || Date.now() - last > 7 * 86400000);
+    const el = $('backup-note');
+    el.classList.toggle('stale', stale);
+    el.innerHTML = 'Your books save automatically in this browser as you type. ' +
+      (last ? `Last backup: ${ago(last)}.` : 'You haven’t made a backup yet.') +
+      (stale ? ' <b>Back up now and then so you never lose your writing.</b>' : '');
+  }
+
   function renderLibrary() {
+    renderBackupNote();
     const shelf = $('shelf');
     const books = [...data.books].sort((a, b) => b.updated - a.updated);
     let h = `
@@ -134,6 +173,7 @@
           .then((yes) => {
             if (!yes) return;
             data.books = data.books.filter((x) => x.id !== b.id);
+            data.deleted = [...(data.deleted || []), b.id];
             if (deskBookId === b.id) deskBookId = null;
             persist(); renderLibrary();
             toast('Book deleted.');
@@ -239,7 +279,9 @@
   }
 
   $('btn-export-all').addEventListener('click', () => {
+    data.lastBackup = Date.now();
     persist();
+    renderBackupNote();
     download(`inkwell-library-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 1), 'application/json');
   });
   $('file-import').addEventListener('change', async (e) => {
@@ -328,6 +370,7 @@
   function openDesk(b) {
     book = b;
     showView('desk');
+    claimBook(b.id);
     $('desk-book-title').textContent = b.title || 'Untitled';
     $('machine').style.setProperty('--paper', paperColor(b));
     fitDesk();
@@ -377,6 +420,7 @@
 
   function act(a) {
     if (!book || view !== 'desk') return;
+    if (lockedOut) { toast('This book is open in another tab. Use that tab, or take it over here.', null, 2600); return; }
     if (busy) { if (queue.length < 300) queue.push(a); return; }
     hideHint();
     if (a.type !== 'vert') goalCol = null;
@@ -1018,6 +1062,16 @@
   function backToDesk() { openDesk(book); }
   $('btn-reader-back').addEventListener('click', backToDesk);
   $('btn-reader-lib').addEventListener('click', goLibrary);
+
+  $('btn-takeover').addEventListener('click', () => {
+    // load what the other tab saved, then continue here
+    const fresh = Store.load();
+    if (fresh) { fresh.settings = data.settings; data = fresh; }
+    const b = findBook(book.id);
+    if (!b) { goLibrary(); return; }
+    deskBookId = null;
+    openDesk(b);
+  });
 
   // =====================================================================
   //   boot

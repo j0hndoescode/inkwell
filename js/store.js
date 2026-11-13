@@ -13,13 +13,42 @@ const Store = {
     return null;
   },
 
-  save(data) {
+  /**
+   * Save, merging with whatever another tab may have saved in the meantime:
+   * books created elsewhere are kept, newer edits to other books win, deleted books stay deleted.
+   * `openId` is the book this tab is typing into; it is never replaced from disk.
+   */
+  save(data, openId) {
     try {
+      const disk = this.load();
+      if (disk) {
+        const dead = new Set([...(data.deleted || []), ...(disk.deleted || [])]);
+        const mine = new Map(data.books.map((b) => [b.id, b]));
+        for (const b of disk.books) {
+          if (dead.has(b.id)) continue;
+          const m = mine.get(b.id);
+          if (!m) data.books.push(b);
+          else if (b.id !== openId && (b.updated || 0) > (m.updated || 0)) Object.assign(m, b);
+        }
+        data.books = data.books.filter((b) => !dead.has(b.id));
+        data.deleted = [...dead].slice(-500);
+        data.lastBackup = Math.max(data.lastBackup || 0, disk.lastBackup || 0);
+      }
       localStorage.setItem(this.KEY, JSON.stringify(data));
       return true;
     } catch (e) {
       return false;
     }
+  },
+
+  /** Ask the browser not to clear our storage when space runs low (or, in Safari, after a week away). */
+  async requestPersistence() {
+    try {
+      if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) {
+        return await navigator.storage.persist();
+      }
+      return true;
+    } catch (e) { return false; }
   },
 };
 

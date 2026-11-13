@@ -25,6 +25,7 @@
       <label class="tag-btn" title="Restore books from a backup file">Restore backup<input type="file" id="file-import" accept=".json,application/json" hidden></label>
     </div>
   </header>
+  <p class="backup-note" id="backup-note"></p>
   <div class="shelves" id="shelf"></div>
 </section>
 
@@ -40,6 +41,10 @@
     <button class="resume" id="btn-resume" hidden>
       <span id="resume-where">Fixing page 2</span> · <b>back to where you left off</b> <kbd>⌘↓</kbd>
     </button>
+    <div class="tab-lock" id="tab-lock" hidden>
+      <p><b>This book is open in another tab.</b><br>Everything you typed here is saved. To keep your writing safe, only one tab can type into a book at a time.</p>
+      <button id="btn-takeover">Continue writing here</button>
+    </div>
     <div class="hint" id="hint">
       Just start typing. Your keyboard is the typewriter (or click the keys).<br>
       <b>Enter</b> carriage return · <b>Backspace</b> erase · <b>⌘/Ctrl&nbsp;S</b> save point<br>
