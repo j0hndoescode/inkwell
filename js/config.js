@@ -67,5 +67,9 @@ const AMBIENCES = [
   { id: 'rain',  name: 'Rain' },
   { id: 'fire',  name: 'Fireplace' },
   { id: 'sea',   name: 'Sea' },
+  { id: 'sunrise', name: 'Sunrise' },
+  { id: 'sunset', name: 'Sunset fields' },
+  { id: 'snow',  name: 'Snowfall' },
+  { id: 'night', name: 'Summer night' },
   { id: 'clock', name: 'Clock' },
 ];

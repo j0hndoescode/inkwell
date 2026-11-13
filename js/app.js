@@ -75,7 +75,7 @@
     st.classList.add('dirty');
     st.textContent = 'Saving…';
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { persist(); updateMeta(true); }, 500);
+    saveTimer = setTimeout(() => { saveTimer = 0; persist(); updateMeta(true); }, 500);
   }
   // Save straight away whenever the page might be going away (closing the tab, switching apps on a phone).
   function flush() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; persist(); } }
@@ -188,6 +188,10 @@
     $('desk').hidden = v !== 'desk';
     $('reader').hidden = v !== 'reader';
     Sound.setDesk(v === 'desk');
+    if (v === 'desk') Fx.mount($('stage'), $('machine'));
+    else Fx.mount($(v));
+    if (v === 'library') Fx.setLayout('library', 0);
+    if (v === 'reader') Fx.setLayout('reader', innerHeight * 0.86);
     if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   }
 
@@ -319,9 +323,11 @@
   //   DESK: the typewriter
   // =====================================================================
   data.settings = Object.assign(
-    { profile: 'classic', volume: 0.8, ambience: 'none', ambVol: 0.5, theme: 'study', ink: 'black', mode: 'insert', focus: false },
+    { profile: 'classic', volume: 0.8, ambience: 'none', ambVol: 0.5, ambFx: 'scene', theme: 'study', ink: 'black', mode: 'insert', focus: false },
     data.settings
   );
+  if (data.settings.ambFx === true) data.settings.ambFx = 'scene';
+  if (data.settings.ambFx === false) data.settings.ambFx = 'off';
 
   Machine.build($('machine'), { onKey: onScreenKey, onPaperClick: (row, col) => { Sound.init(); act({ type: 'goto', row, col }); } });
 
@@ -334,7 +340,11 @@
     m.style.setProperty('--fin-trim', f.trim);
   }
 
-  function fitDesk() { if (view === 'desk') Machine.fit(stage.clientWidth, stage.clientHeight); }
+  function fitDesk() {
+    if (view !== 'desk') return;
+    const s = Machine.fit(stage.clientWidth, stage.clientHeight);
+    Fx.setLayout('desk', stage.clientHeight - 6 - 540 * s); // the far edge of the table, a little behind the desk mat
+  }
 
   // ---- where the carriage is: page, line, column ----
   let cur = { p: 0, row: 0, col: 0 };
@@ -874,13 +884,15 @@
     $('opt-profile').innerHTML = SOUND_PROFILES.map((p) => chip('profile', p)).join('');
     $('opt-amb').innerHTML = AMBIENCES.map((a) => chip('ambience', a)).join('');
     $('opt-mode').innerHTML = chip('mode', { id: 'insert', name: 'Insert' }) + chip('mode', { id: 'overtype', name: 'Strike over' });
+    $('opt-ambfx').innerHTML = chip('ambFx', { id: 'scene', name: 'Full scene' }) + chip('ambFx', { id: 'subtle', name: 'Subtle' }) + chip('ambFx', { id: 'off', name: 'Sound only' });
     $('opt-focus').innerHTML = chip('focus', { id: 'off', name: 'Off' }) + chip('focus', { id: 'on', name: 'Focus mode' });
   }
 
   function syncSettingsUI() {
     const s = data.settings;
     document.querySelectorAll('#settings [data-set]').forEach((b) => {
-      const v = b.dataset.set === 'focus' ? (s.focus ? 'on' : 'off') : s[b.dataset.set];
+      const k = b.dataset.set;
+      const v = k === 'focus' ? (s[k] ? 'on' : 'off') : s[k];
       b.setAttribute('aria-pressed', String(v === b.dataset.val));
     });
     $('opt-volume').value = s.volume;
@@ -898,6 +910,8 @@
     Sound.setProfile(s.profile);
     Sound.setVolume(s.volume);
     Sound.setAmbienceVolume(s.ambVol);
+    Fx.themeChanged();
+    Fx.set(s.ambience, s.ambFx);
   }
 
   function setSetting(k, v) {
@@ -931,6 +945,7 @@
     Sound.init();
     const k = b.dataset.set, v = b.dataset.val;
     if (k === 'focus') { if ((v === 'on') !== !!data.settings.focus) toggleFocus(); return; }
+    if (k === 'ambFx') { setSetting('ambFx', v); return; }
     setSetting(k, v);
     if (k === 'profile') {
       if (!Sound.enabled) setSound(true);
@@ -1076,7 +1091,8 @@
   // =====================================================================
   //   boot
   // =====================================================================
-  window.addEventListener('resize', () => { fitDesk(); if (view === 'reader') Reader.fit(); });
+  Fx.init();
+  window.addEventListener('resize', () => { fitDesk(); if (view === 'reader') { Reader.fit(); Fx.setLayout('reader', innerHeight * 0.86); } });
   document.addEventListener('pointerdown', () => Sound.init(), { passive: true });
   $('btn-sound').classList.toggle('off', !Sound.enabled);
   buildSwatches();

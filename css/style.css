@@ -96,6 +96,7 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
 }
 .sheet.current { pointer-events: auto; cursor: text; }
+.sheet.current .type { will-change: transform; } /* typing repaints only the text layer, not the paper */
 .ln { height: 25px; line-height: 25px; white-space: pre; }
 .c {
   display: inline-block; width: 13px; text-align: center;
@@ -105,7 +106,7 @@ button { font: inherit; color: inherit; }
 }
 .c.dbl { text-shadow: .8px .3px 0 color-mix(in srgb, var(--ink) 30%, transparent), 0 0 .7px color-mix(in srgb, var(--ink) 60%, transparent); }
 .c.faint { opacity: calc(var(--o) * .55); }
-.c.fresh { animation: wet 1.6s ease-out; }
+.c.fresh { opacity: 1; text-shadow: 0 0 1.1px var(--ink); }
 @keyframes wet {
   from { opacity: 1; text-shadow: 0 0 1.6px var(--ink), 0 0 .5px var(--ink); }
 }
@@ -442,7 +443,6 @@ button { font: inherit; color: inherit; }
     linear-gradient(var(--lib-overlay), var(--lib-overlay)),
     var(--desk-tex);
   background-color: var(--desk-base);
-  background-attachment: fixed;
 }
 .lib-head {
   position: relative; text-align: center; padding: 46px 16px 18px;
@@ -802,3 +802,27 @@ body.focus .stage::after {
   border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; font-size: 16px;
   background: #3a2a1c; color: #f6e8c6;
 }
+
+/* ambience shown in the room: a faint layer behind the content of each screen */
+.amb-fx {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+  opacity: 0; transition: opacity 1.4s ease;
+}
+.amb-fx.on { opacity: 1; }
+#library > :not(.amb-fx) { position: relative; z-index: 2; }
+.reader-stage, .reader-foot { z-index: 2; }
+.chips.sub { margin-top: 12px; }
+
+.blotter { z-index: 1; }
+.hint { background: rgba(18, 12, 8, .5); padding: 8px 12px; border-radius: 8px; }
+
+/* filmed ambience footage, behind the table layer */
+.amb-video {
+  position: fixed; left: 0; top: 0; width: 100%; height: 50vh;
+  object-fit: cover; object-position: 50% 50%;
+  z-index: 0; pointer-events: none; background: #0b0908;
+  opacity: 0; transition: opacity 1.4s ease;
+  will-change: transform;
+}
+.amb-video.on { opacity: 1; }

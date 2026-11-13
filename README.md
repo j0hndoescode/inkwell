@@ -44,7 +44,10 @@ Open the sliders icon in the top bar to change:
 - The room: Lamplit study, Morning light, Midnight, Candlelight or Café marble.
 - The typewriter colour and the ink colour.
 - How the keys sound: Classic manual, Heavy office, Portable, Electric, Muffled, or silent.
-- Background sound: rain, a fireplace, the sea or a ticking clock.
+- The ambience: rain on a window, a fireplace, the sea, sunrise, sunset over golden fields, snowfall, a summer night
+  or a ticking clock.
+  You hear it and, behind the typewriter, you see it: real footage of the place, with your table in front.
+  It can also be set to a subtle tint or to sound only.
 - Focus mode, which hides everything except the machine and the page.
 
 All of the sounds are generated in the browser, so there are no audio files.
@@ -117,8 +120,19 @@ It's a static site, so any static host works. On Vercel: import the repository, 
 | `js/sheet.js` | Renders aged paper with slightly uneven, inky type |
 | `js/reader.js` | The open book and its page turns |
 | `js/sound.js` | The synthesised typewriter voices and background sounds |
+| `js/fx.js` | The ambience in the room: footage, the table, soft edges, and the faint "subtle" look |
+| `js/scenes.js` | Painted versions of each place, used when the footage isn't available |
+| `media/` | The background footage (about 14 MB) and a still frame for each |
 | `js/store.js` | Saving to the browser, merging between tabs, persistent storage |
 | `js/app.js` | Ties it together: the shelf, typing and editing, save points and settings |
+
+The background footage comes from [Mixkit](https://mixkit.co) under its free stock video licence: [waves on the
+beach](https://mixkit.co/free-stock-video/waves-coming-to-the-beach-5016/), [a rainy window](https://mixkit.co/free-stock-video/window-on-a-rainy-day-2846/),
+[a fireplace](https://mixkit.co/free-stock-video/closeup-view-of-a-fireplace-2709/), [a mountain from night to dawn](https://mixkit.co/free-stock-video/mountain-during-the-night-until-dawn-4357/),
+[sunset over fields of tall grass](https://mixkit.co/free-stock-video/sunset-over-fields-of-tall-dry-grass-2639/),
+[snowy pine branches](https://mixkit.co/free-stock-video/pine-branches-in-winter-3311/), [the Milky Way](https://mixkit.co/free-stock-video/milky-way-seen-at-night-4148/)
+and [library shelves](https://mixkit.co/free-stock-video/bookcase-of-a-library-seen-in-detail-21586/). The clips were shortened,
+colour-graded where needed, compressed and turned into seamless loops. If they can't load, Inkwell paints a version of each place in code instead.
 
 Fonts are Cutive Mono, IM Fell English and EB Garamond from Google Fonts. Everything else (the wood, leather and paper
 textures, and the typewriter itself) is drawn in code.

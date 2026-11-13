@@ -292,6 +292,49 @@ const Sound = (() => {
           ambience.beat += 1;
         }
       };
+    } else if (ambId === 'sunrise') {
+      loopNoise(true, 'lowpass', 340, 0.5, 0.2);          // soft morning breeze
+      loopNoise(false, 'bandpass', 3200, 0.4, 0.01);      // leaves
+      ambience.tick = (t0, t1) => { if (Math.random() < 0.13) bird(e, rnd(t0, t1)); };
+    } else if (ambId === 'sunset') {
+      loopNoise(true, 'lowpass', 300, 0.5, 0.22);          // warm evening breeze
+      loopNoise(false, 'bandpass', 2400, 0.5, 0.014);     // long grass moving
+      const cricket = { next: ctx.currentTime + 3, every: 1.7 };
+      ambience.tick = (t0, t1) => {
+        if (Math.random() < 0.035) bird(e, rnd(t0, t1)); // the last birds of the day
+        while (cricket.next < t1) {
+          if (cricket.next >= t0) for (let i = 0; i < 3; i++) tn(e, cricket.next + i * 0.045, 0.022, { f: 4400 + rnd(-30, 30), g: 0.022, a: 0.004 });
+          cricket.next += cricket.every * rnd(0.9, 1.3);
+        }
+      };
+    } else if (ambId === 'snow') {
+      const wind = loopNoise(false, 'bandpass', 520, 1.3, 0.09);
+      loopNoise(true, 'lowpass', 240, 0.5, 0.28);
+      const l1 = ctx.createOscillator(); l1.frequency.value = 0.05;
+      const l2 = ctx.createOscillator(); l2.frequency.value = 0.071;
+      const d1 = ctx.createGain(); d1.gain.value = 260;
+      const d2 = ctx.createGain(); d2.gain.value = 0.06;
+      l1.connect(d1).connect(wind.fl.frequency);
+      l2.connect(d2).connect(wind.gn.gain);
+      l1.start(); l2.start();
+      ambience.nodes.push(l1, l2);
+      ambience.tick = () => {};
+    } else if (ambId === 'night') {
+      loopNoise(true, 'lowpass', 300, 0.5, 0.14);
+      const crickets = [{ next: ctx.currentTime + 0.3, every: 0.86, f: 4650, g: 0.05 }, { next: ctx.currentTime + 0.7, every: 1.13, f: 4180, g: 0.032 }];
+      ambience.tick = (t0, t1) => {
+        for (const c of crickets) {
+          while (c.next < t1) {
+            if (c.next >= t0) for (let i = 0; i < 3; i++) tn(e, c.next + i * 0.042, 0.022, { f: c.f + rnd(-30, 30), g: c.g, a: 0.004 });
+            c.next += c.every * rnd(0.97, 1.03);
+          }
+        }
+        if (Math.random() < 0.004) { // a distant owl
+          const t = rnd(t0, t1);
+          tn(e, t, 0.4, { f: 390, to: 360, g: 0.05, a: 0.05 });
+          tn(e, t + 0.55, 0.5, { f: 375, to: 340, g: 0.045, a: 0.06 });
+        }
+      };
     }
     // scheduler: look 150 ms ahead every 60 ms
     ambience.next = ctx.currentTime;
@@ -302,6 +345,40 @@ const Sound = (() => {
       if (t1 > t0) ambience.tick(t0, t1);
       ambience.next = t1;
     }, 60);
+  }
+
+  /** A little bird phrase: chirps, a warble, or a two-note whistle. */
+  function bird(e, t) {
+    const g = rnd(0.03, 0.08);
+    const kind = Math.random();
+    const sweep = (at, f1, f2, dur, gain) => {
+      const o = ctx.createOscillator();
+      o.frequency.setValueAtTime(f1, at);
+      o.frequency.exponentialRampToValueAtTime(f2, at + dur);
+      const gn = ctx.createGain();
+      gn.gain.setValueAtTime(0.0001, at);
+      gn.gain.exponentialRampToValueAtTime(gain, at + 0.008);
+      gn.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      o.connect(gn).connect(e.out);
+      o.start(at); o.stop(at + dur + 0.02);
+      return o;
+    };
+    if (kind < 0.5) {
+      const n = Math.floor(rnd(3, 7)), up = Math.random() < 0.5, base = rnd(2600, 3600);
+      for (let i = 0; i < n; i++) {
+        const at = t + i * rnd(0.09, 0.14);
+        sweep(at, up ? base : base * 1.45, up ? base * 1.45 : base, rnd(0.04, 0.07), g * rnd(0.7, 1));
+      }
+    } else if (kind < 0.8) {
+      const o = sweep(t, rnd(2800, 3400), rnd(2600, 3200), 0.4, g * 0.8);
+      const lfo = ctx.createOscillator(); lfo.frequency.value = rnd(16, 24);
+      const d = ctx.createGain(); d.gain.value = rnd(180, 320);
+      lfo.connect(d).connect(o.frequency);
+      lfo.start(t); lfo.stop(t + 0.42);
+    } else {
+      sweep(t, 2300, 2650, 0.22, g);
+      sweep(t + 0.3, 2100, 1850, 0.28, g * 0.9);
+    }
   }
 
   function stopAmbience() {
@@ -336,6 +413,8 @@ const Sound = (() => {
     setAmbience(id) { ambId = id; if (ctx) startAmbience(); },
     setAmbienceVolume(v) { ambVol = v; applyLevels(); },
     setDesk(on) { onDesk = on; applyProfile(); },
+    /** Audio clock in seconds (the clock ambience ticks on whole seconds), or null before audio starts. */
+    get clock() { return ctx && ctx.state === 'running' ? ctx.currentTime : null; },
     key: (delay) => play('key', { delay }),
     space: () => play('space'),
     back: () => play('back'),
