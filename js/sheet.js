@@ -17,30 +17,35 @@ const Sheet = (() => {
     return h >>> 0;
   }
 
-  /** Build the HTML for typed text. freshAt = index of the character just struck (gets a darker, wet-ink look). */
-  function typeHTML(text, seed, freshAt = -1) {
-    const lines = text.split('\n');
+  /** HTML for the characters of one line, starting at column `from`.
+      The ink wobble depends only on (line, column), so editing one line never changes the look of another. */
+  function charsHTML(chars, seed, row, from = 0) {
     let html = '';
-    let idx = 0;
-    for (const line of lines) {
-      html += '<div class="ln">';
-      for (const ch of line) {
-        if (ch === ' ') { html += '<span class="c"> </span>'; idx++; continue; }
-        const r1 = rand(seed, idx * 3 + 1), r2 = rand(seed, idx * 3 + 2), r3 = rand(seed, idx * 3 + 3);
-        const o = (0.7 + r1 * 0.3).toFixed(2);
-        const rot = ((r2 - 0.5) * 2.6).toFixed(2);
-        const y = ((r3 - 0.5) * 1.6).toFixed(2);
-        let cls = 'c';
-        if (r1 < 0.035) cls += ' dbl';           // occasional double-strike ghost
-        else if (r1 > 0.97) cls += ' faint';     // dry ribbon spot
-        if (idx === freshAt) cls += ' fresh';
-        html += `<span class="${cls}" style="--o:${o};--r:${rot}deg;--y:${y}px">${esc(ch)}</span>`;
-        idx++;
-      }
-      html += '</div>';
-      idx++; // the newline
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      if (ch === ' ') { html += '<span class="c"> </span>'; continue; }
+      const n = (row * 997 + from + i) * 3;
+      const r1 = rand(seed, n + 1), r2 = rand(seed, n + 2), r3 = rand(seed, n + 3);
+      let cls = 'c';
+      if (r1 < 0.035) cls += ' dbl';           // occasional double-strike ghost
+      else if (r1 > 0.97) cls += ' faint';     // dry ribbon spot
+      html += `<span class="${cls}" style="--o:${(0.7 + r1 * 0.3).toFixed(2)};--r:${((r2 - 0.5) * 2.6).toFixed(2)}deg;--y:${((r3 - 0.5) * 1.6).toFixed(2)}px">${esc(ch)}</span>`;
     }
     return html;
+  }
+
+  function typeHTML(text, seed) {
+    return text.split('\n').map((line, r) => `<div class="ln">${charsHTML(line, seed, r)}</div>`).join('');
+  }
+
+  /** Mark the character at absolute index `at` as just struck (a little darker until the next key). */
+  function markFresh(el, lines, at) {
+    if (el._freshEl) { el._freshEl.classList.remove('fresh'); el._freshEl = null; }
+    if (at < 0) return;
+    let row = 0;
+    while (row < lines.length && at > lines[row].length) { at -= lines[row].length + 1; row++; }
+    const sp = el._type.children[row] && el._type.children[row].children[at];
+    if (sp) { sp.classList.add('fresh'); el._freshEl = sp; }
   }
 
   /** Per-sheet stains & foxing so no two pages look identical. */
@@ -62,11 +67,36 @@ const Sheet = (() => {
     el.setAttribute('style', ageStyle(seed) + `;--paper:${paper}`);
     el.innerHTML = `<div class="type">${typeHTML(text, seed)}</div>` + (folio ? `<div class="folio">${folio}</div>` : '');
     el._seed = seed;
+    el._type = el.querySelector('.type');
+    el._lines = text.split('\n');
     return el;
   }
 
+  /** Bring a sheet up to date with `text`, touching only the lines (and characters) that changed. */
   function update(el, text, freshAt = -1) {
-    el.querySelector('.type').innerHTML = typeHTML(text, el._seed, freshAt);
+    const lines = text.split('\n');
+    const old = el._lines || [];
+    const type = el._type || (el._type = el.querySelector('.type'));
+    const rows = type.children;
+    while (rows.length > lines.length) type.lastChild.remove();
+    for (let r = 0; r < lines.length; r++) {
+      const now = lines[r];
+      if (r >= rows.length) {
+        const d = document.createElement('div');
+        d.className = 'ln';
+        d.innerHTML = charsHTML(now, el._seed, r);
+        type.appendChild(d);
+        continue;
+      }
+      const was = old[r];
+      if (was === now) continue;
+      const ln = rows[r];
+      if (was !== undefined && now.startsWith(was)) ln.insertAdjacentHTML('beforeend', charsHTML(now.slice(was.length), el._seed, r, was.length));
+      else if (was !== undefined && was.startsWith(now)) for (let i = was.length; i > now.length; i--) ln.lastChild.remove();
+      else ln.innerHTML = charsHTML(now, el._seed, r);
+    }
+    el._lines = lines;
+    markFresh(el, lines, freshAt);
   }
 
   function titlePage({ title, author, paper, created }) {
