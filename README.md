@@ -4,7 +4,7 @@ Inkwell is an old typewriter in your browser, made for writing whole books. You 
 moves with every keystroke, and when a page is full it gets pulled out and bound into your book. Later you can sit back
 and flip through what you wrote like a real book.
 
-**Try it here: [LIVE_URL](LIVE_URL)**
+**Try it here: [inkwell-typewriter.vercel.app](https://inkwell-typewriter.vercel.app)**
 
 ![The typewriter](docs/typewriter.jpg)
 
