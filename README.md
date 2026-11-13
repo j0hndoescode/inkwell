@@ -93,7 +93,7 @@ What you should do:
 There is no build step and nothing to install. It's plain HTML, CSS and JavaScript.
 
 ```bash
-git clone https://github.com/GITHUB_USER/inkwell.git
+git clone https://github.com/j0hndoescode/inkwell.git
 cd inkwell
 python3 -m http.server 8642
 ```
