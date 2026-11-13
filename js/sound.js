@@ -1,4 +1,4 @@
-/* All sounds are synthesised with WebAudio — no audio files needed.
+/* All sounds are synthesised with WebAudio, so no audio files are needed.
    A keystroke = sharp click (slug on platen) + body resonance + short metallic ring + low thump + escapement tick. */
 const Sound = (() => {
   // ---------------- typewriter voices ----------------
@@ -196,7 +196,7 @@ const Sound = (() => {
     },
   };
 
-  // UI sounds (page flip/pull/feed) play even with "silent keys" — they use the classic voice.
+  // UI sounds (page flip/pull/feed) play even with "silent keys"; they use the classic voice.
   function play(name, opt = {}) {
     if (!ctx || !enabled || ctx.state !== 'running') return;
     const isKey = ['key', 'space', 'back', 'shift', 'bell', 'carriageReturn'].includes(name);

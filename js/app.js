@@ -64,7 +64,7 @@
     st.classList.toggle('dirty', false);
     st.classList.toggle('err', !ok);
     st.textContent = ok ? 'Saved' : 'Not saved!';
-    if (!ok) toast('Could not save — browser storage is full. Back up your library and delete old save points.', null, 6000);
+    if (!ok) toast('Could not save. Browser storage is full. Back up your library and delete old save points.', null, 6000);
     return ok;
   }
   function touch() {
@@ -274,7 +274,7 @@
   });
 
   // =====================================================================
-  //   DESK — the typewriter
+  //   DESK: the typewriter
   // =====================================================================
   data.settings = Object.assign(
     { profile: 'classic', volume: 0.8, ambience: 'none', ambVol: 0.5, theme: 'study', ink: 'black', mode: 'insert', focus: false },
@@ -566,7 +566,7 @@
       return;
     }
     const res = insertWithReflow(L, row, col, ch);
-    if (!res) { Sound.bell(); toast('No room left on this sheet — remove something first.', null, 2600); return; }
+    if (!res) { Sound.bell(); toast('No room left on this sheet. Remove something first.', null, 2600); return; }
     commit(res.lines);
     strikeFx(ch);
     render(absIndex(res.lines, res.frow, res.fcol));
@@ -814,7 +814,7 @@
   }
 
   // =====================================================================
-  //   SETTINGS — themes, sounds, modes
+  //   SETTINGS: themes, sounds, modes
   // =====================================================================
   const chip = (key, o) => `<button class="chip" data-set="${key}" data-val="${o.id}" aria-pressed="false">${escapeHTML(o.name)}</button>`;
 
@@ -841,7 +841,7 @@
     });
     $('opt-volume').value = s.volume;
     $('opt-ambvol').value = s.ambVol;
-    $('sound-note').textContent = !s.sound ? 'Sound is switched off — choosing a sound turns it back on.'
+    $('sound-note').textContent = !s.sound ? 'Sound is switched off. Choosing a sound turns it back on.'
       : 'Pick a machine to hear it. If you hear nothing, check the tab isn’t muted and your volume is up.';
   }
 
@@ -866,7 +866,7 @@
 
   function toggleFocus() {
     setSetting('focus', !data.settings.focus);
-    if (data.settings.focus && view === 'desk') toast('Focus mode — move the pointer to the top for the menu. ⌘/Ctrl . to leave.', null, 3000);
+    if (data.settings.focus && view === 'desk') toast('Focus mode: move the pointer to the top for the menu. ⌘/Ctrl . to leave.', null, 3000);
   }
 
   function openSettings() {
