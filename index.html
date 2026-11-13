@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkwell — Typewriter Books</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============================ LIBRARY ============================ -->
+<section id="library" class="view">
+  <header class="lib-head">
+    <div class="lib-brand">
+      <div class="lib-ornament">❦</div>
+      <h1>Inkwell</h1>
+      <p>A typewriter for writing books — one keystroke at a time.</p>
+    </div>
+    <div class="lib-tools">
+      <button class="tag-btn" data-open-settings>Themes &amp; sounds</button>
+      <button class="tag-btn" id="btn-export-all" title="Download every book as a backup file">Back up library</button>
+      <label class="tag-btn" title="Restore books from a backup file">Restore backup<input type="file" id="file-import" accept=".json,application/json" hidden></label>
+    </div>
+  </header>
+  <div class="shelves" id="shelf"></div>
+</section>
+
+<!-- ============================ DESK ============================ -->
+<section id="desk" class="view" hidden>
+  <div class="stage" id="stage">
+    <div class="blotter"></div>
+    <button class="manuscript" id="manuscript" title="Read the finished pages">
+      <span class="ms-sheet s3"></span><span class="ms-sheet s2"></span><span class="ms-sheet s1"></span>
+      <span class="ms-label"><b id="ms-count">0</b> pages<br><i>read the book</i></span>
+    </button>
+    <div class="machine" id="machine"><!-- built by machine.js --></div>
+    <button class="resume" id="btn-resume" hidden>
+      <span id="resume-where">Fixing page 2</span> · <b>back to where you left off</b> <kbd>⌘↓</kbd>
+    </button>
+    <div class="hint" id="hint">
+      Just start typing — your keyboard is the typewriter (or click the keys).<br>
+      <b>Enter</b> carriage return · <b>Backspace</b> erase · <b>⌘/Ctrl&nbsp;S</b> save point<br>
+      To fix a mistake, click the letter on the page, scroll, or use the <b>arrow keys</b>. <b>Page Up/Down</b> flips sheets.
+    </div>
+  </div>
+
+  <header class="desk-bar">
+    <button class="bar-btn" id="btn-library" title="Back to the library">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg><span>Library</span>
+    </button>
+    <div class="desk-title">
+      <span id="desk-book-title">Untitled</span>
+      <span class="desk-nav">
+        <button class="nav-mini" id="pg-prev" title="Previous sheet (Page Up)" aria-label="Previous sheet">‹</button>
+        <span id="desk-meta">Page 1 · Line 1</span>
+        <button class="nav-mini" id="pg-next" title="Next sheet (Page Down)" aria-label="Next sheet">›</button>
+      </span>
+    </div>
+    <div class="desk-actions">
+      <span class="save-status" id="save-status">Saved</span>
+      <button class="bar-btn" id="btn-savepoint" title="Make a save point (⌘/Ctrl S)">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Save point</span>
+      </button>
+      <button class="bar-btn" id="btn-history" title="Save points">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg><span>History</span>
+      </button>
+      <button class="bar-btn" id="btn-read" title="Read the book">
+        <svg viewBox="0 0 24 24"><path d="M2 5c4-1 7 0 10 2 3-2 6-3 10-2v14c-4-1-7 0-10 2-3-2-6-3-10-2zM12 7v14"/></svg><span>Read</span>
+      </button>
+      <button class="bar-btn icon-only" data-open-settings title="Themes, sounds & modes">
+        <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+      <button class="bar-btn icon-only" id="btn-sound" title="Sound on/off">
+        <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+    </div>
+  </header>
+</section>
+
+<!-- ============================ READER ============================ -->
+<section id="reader" class="view" hidden>
+  <header class="desk-bar reader-bar">
+    <button class="bar-btn" id="btn-reader-back" title="Back to the typewriter">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg><span>Typewriter</span>
+    </button>
+    <div class="desk-title">
+      <span id="reader-title">Untitled</span>
+      <span id="reader-author"></span>
+    </div>
+    <div class="desk-actions">
+      <button class="bar-btn icon-only" data-open-settings title="Themes, sounds & modes">
+        <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+      <button class="bar-btn" id="btn-reader-lib"><span>Library</span></button>
+    </div>
+  </header>
+  <div class="reader-stage" id="reader-stage">
+    <button class="nav-btn prev" id="nav-prev" aria-label="Previous page">‹</button>
+    <div class="book-box" id="book-box">
+      <div class="book" id="book">
+        <div class="boards"></div>
+        <div class="pg pg-l" id="pgL"></div>
+        <div class="pg pg-r" id="pgR"></div>
+        <div class="leaf" id="leaf" hidden>
+          <div class="face front"></div>
+          <div class="face back"></div>
+        </div>
+        <div class="gutter"></div>
+      </div>
+    </div>
+    <button class="nav-btn next" id="nav-next" aria-label="Next page">›</button>
+  </div>
+  <footer class="reader-foot">
+    <input type="range" id="reader-range" min="0" max="0" value="0" aria-label="Jump to page">
+    <span id="reader-pos">—</span>
+  </footer>
+</section>
+
+<!-- ============================ DIALOGS ============================ -->
+<dialog id="dlg-book" class="card">
+  <form method="dialog" id="form-book">
+    <h2 id="dlg-book-title">A new book</h2>
+    <label>Title<input name="title" maxlength="80" required autocomplete="off" placeholder="The Long Winter Letters"></label>
+    <label>Author<input name="author" maxlength="60" autocomplete="off" placeholder="Your name"></label>
+    <fieldset>
+      <legend>Binding</legend>
+      <div class="swatches" id="sw-leather"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Paper</legend>
+      <div class="swatches" id="sw-paper"></div>
+    </fieldset>
+    <div class="dlg-actions">
+      <button value="cancel" formnovalidate class="ghost">Cancel</button>
+      <button value="ok" class="primary" id="dlg-book-ok">Bind the book</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-saves" class="card wide">
+  <h2>Save points</h2>
+  <p class="muted">Snapshots of this book you can return to. Your work also saves itself as you type.</p>
+  <form id="form-savepoint" class="sp-new">
+    <input id="sp-name" maxlength="60" autocomplete="off" placeholder="Name this save point (optional)">
+    <button class="primary">Save now</button>
+  </form>
+  <ol class="sp-list" id="sp-list"></ol>
+  <div class="dlg-actions"><button class="ghost" id="btn-saves-close">Close</button></div>
+</dialog>
+
+<dialog id="dlg-confirm" class="card">
+  <h2 id="cf-title">Are you sure?</h2>
+  <p id="cf-text"></p>
+  <div class="dlg-actions">
+    <button class="ghost" id="cf-no">Cancel</button>
+    <button class="primary danger" id="cf-yes">Yes</button>
+  </div>
+</dialog>
+
+<aside class="drawer" id="settings" aria-label="Themes, sounds and modes" inert>
+  <div class="drawer-head">
+    <h2>Mood &amp; machine</h2>
+    <button class="drawer-x" id="btn-settings-close" aria-label="Close">✕</button>
+  </div>
+  <section>
+    <h3>Room</h3>
+    <div class="theme-grid" id="opt-theme"></div>
+  </section>
+  <section>
+    <h3>Typewriter</h3>
+    <div class="dots" id="opt-finish"></div>
+  </section>
+  <section>
+    <h3>Ink ribbon</h3>
+    <div class="dots" id="opt-ink"></div>
+  </section>
+  <section>
+    <h3>Sound of the keys</h3>
+    <div class="chips" id="opt-profile"></div>
+    <label class="slider"><span>Volume</span><input type="range" id="opt-volume" min="0" max="1" step="0.01"></label>
+    <p class="small" id="sound-note"></p>
+  </section>
+  <section>
+    <h3>Ambience</h3>
+    <div class="chips" id="opt-amb"></div>
+    <label class="slider"><span>Ambience</span><input type="range" id="opt-ambvol" min="0" max="1" step="0.01"></label>
+  </section>
+  <section>
+    <h3>Fixing mistakes</h3>
+    <div class="chips" id="opt-mode"></div>
+    <p class="small">Click a letter on the page, scroll over the paper, or use the arrow keys to bring the carriage there. <b>Insert</b> slips new letters in; <b>Strike over</b> types on top of the old ones, like a real typewriter.</p>
+  </section>
+  <section>
+    <h3>Focus</h3>
+    <div class="chips" id="opt-focus"></div>
+    <p class="small">Focus mode hides everything but the machine and the page. Toggle with <kbd>⌘/Ctrl .</kbd></p>
+  </section>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/config.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sheet.js"></script>
+<script src="js/machine.js"></script>
+<script src="js/reader.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
