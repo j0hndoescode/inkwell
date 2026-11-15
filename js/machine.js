@@ -334,8 +334,8 @@ const Machine = (() => {
   function pressKey(id) {
     const k = els.keys[id];
     if (!k) return;
-    k.classList.remove('down');
-    void k.offsetWidth;
+    // Keeping a held/repeated key down is visually correct and avoids forcing a
+    // synchronous layout on every keystroke just to restart a CSS transition.
     k.classList.add('down');
     clearTimeout(k._t);
     k._t = setTimeout(() => k.classList.remove('down'), 120);
@@ -347,9 +347,11 @@ const Machine = (() => {
   }
 
   function lever() {
-    els.lever.classList.remove('pull');
-    void els.lever.offsetWidth;
+    // Returns are slower than the lever animation, so it does not need a
+    // remove/reflow/re-add cycle to restart in normal use.
     els.lever.classList.add('pull');
+    clearTimeout(els.lever._t);
+    els.lever._t = setTimeout(() => els.lever.classList.remove('pull'), 460);
   }
 
   /** Position for the carriage so that (row, col) sits under the printing point. */
@@ -361,7 +363,9 @@ const Machine = (() => {
   }
 
   const TRANS = {
-    type: 'transform .075s cubic-bezier(.3,.7,.4,1) .02s',
+    // Start moving in the same frame as the input. The old 20 ms delay made
+    // fast typing feel detached even when the rest of the frame was cheap.
+    type: 'transform .065s cubic-bezier(.3,.7,.4,1)',
     back: 'transform .09s ease-out',
     return: 'transform .44s cubic-bezier(.22,.8,.25,1)',
     feed: 'transform .8s cubic-bezier(.35,.1,.25,1)',
@@ -375,11 +379,11 @@ const Machine = (() => {
     const t = TRANS[mode] || TRANS.type;
     const sheet = els.holder.querySelector('.sheet.current');
     if (sheet) {
-      sheet.style.transition = t;
+      if (sheet.style.transition !== t) sheet.style.transition = t;
       sheet.style.transform = `translate(${curX}px, ${curY + shiftOff}px)`;
     }
     for (const c of [els.back, els.front]) {
-      c.style.transition = t;
+      if (c.style.transition !== t) c.style.transition = t;
       c.style.transform = `translate(${curX}px, ${shiftOff}px)`;
     }
   }

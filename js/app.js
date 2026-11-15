@@ -27,7 +27,7 @@
   const paperColor = (b) => (PAPERS.find((p) => p.id === b.paper) || PAPERS[1]).color;
   const leatherOf = (b) => LEATHERS.find((l) => l.id === b.leather) || LEATHERS[0];
   function cursor() {
-    const lines = page().split('\n');
+    const lines = linesOf(lastIdx());
     return { row: lines.length - 1, col: lines[lines.length - 1].length, lines };
   }
 
@@ -72,8 +72,12 @@
     if (book) book.updated = Date.now();
     if (!askedPersist) { askedPersist = true; Store.requestPersistence(); }
     const st = $('save-status');
-    st.classList.add('dirty');
-    st.textContent = 'Saving…';
+    // Most keystrokes arrive while the debounce is already dirty. Avoid
+    // rewriting the toolbar DOM until its visible state actually changes.
+    if (!st.classList.contains('dirty')) {
+      st.classList.add('dirty');
+      st.textContent = 'Saving…';
+    }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { saveTimer = 0; persist(); updateMeta(true); }, 500);
   }
@@ -351,13 +355,28 @@
   let shownP = 0;      // which page is in the machine
   let goalCol = null;  // column remembered while rolling up and down
 
-  const linesOf = (p) => book.pages[p].split('\n');
+  let lineCachePage = -1, lineCacheText = null, lineCache = null;
+  function linesOf(p) {
+    const text = book.pages[p];
+    if (p !== lineCachePage || text !== lineCacheText) {
+      lineCachePage = p;
+      lineCacheText = text;
+      lineCache = text.split('\n');
+    }
+    return lineCache;
+  }
   function endPos(p) { const L = linesOf(p); return { p, row: L.length - 1, col: L[L.length - 1].length }; }
   function atEnd() { const e = endPos(lastIdx()); return cur.p === e.p && cur.row === e.row && cur.col === e.col; }
   function absIndex(L, row, col) { let i = 0; for (let r = 0; r < row; r++) i += L[r].length + 1; return i + col; }
   const place = (mode) => Machine.place(cur.row, cur.col, mode);
   function setCur(row, col, mode) { cur.row = row; cur.col = col; place(mode); }
-  function commit(L) { book.pages[cur.p] = L.join('\n'); }
+  function commit(L) {
+    const text = L.join('\n');
+    book.pages[cur.p] = text;
+    lineCachePage = cur.p;
+    lineCacheText = text;
+    lineCache = L;
+  }
 
   function makeSheet(i) {
     return Sheet.create({ text: book.pages[i], seed: pageSeed(book, i), folio: `- ${i + 1} -`, paper: paperColor(book) });
@@ -367,14 +386,19 @@
     if (!book) return;
     if (withWords || book._words === undefined) book._words = countWords(book.pages);
     const n = book.pages.length;
-    $('desk-meta').textContent = `page ${cur.p + 1} of ${n} · line ${cur.row + 1}/${ROWS} · ${book._words.toLocaleString()} words`;
-    $('ms-count').textContent = n;
-    $('pg-prev').disabled = cur.p === 0;
-    $('pg-next').disabled = cur.p >= n - 1;
+    const meta = `page ${cur.p + 1} of ${n} · line ${cur.row + 1}/${ROWS} · ${book._words.toLocaleString()} words`;
+    if ($('desk-meta').textContent !== meta) $('desk-meta').textContent = meta;
+    if ($('ms-count').textContent !== String(n)) $('ms-count').textContent = n;
+    const atFirst = cur.p === 0, atLast = cur.p >= n - 1;
+    if ($('pg-prev').disabled !== atFirst) $('pg-prev').disabled = atFirst;
+    if ($('pg-next').disabled !== atLast) $('pg-next').disabled = atLast;
     const editing = !atEnd();
     $('machine').classList.toggle('editing', editing);
-    $('btn-resume').hidden = !editing;
-    if (editing) $('resume-where').textContent = cur.p === lastIdx() ? `Fixing line ${cur.row + 1}` : `Fixing page ${cur.p + 1}`;
+    if ($('btn-resume').hidden === editing) $('btn-resume').hidden = !editing;
+    if (editing) {
+      const where = cur.p === lastIdx() ? `Fixing line ${cur.row + 1}` : `Fixing page ${cur.p + 1}`;
+      if ($('resume-where').textContent !== where) $('resume-where').textContent = where;
+    }
   }
 
   function openDesk(b) {
