@@ -438,11 +438,11 @@ const Machine = (() => {
 
   function currentSheet() { return els.holder.querySelector('.sheet.current'); }
 
-  function fit(stageW, stageH) {
+  function fit(stageW, stageH, maxS = 1.25) {
     // room for the machine plus ~15 lines of paper above the printing point
     const needH = (H - PY) + 330;
     // on phones, let the outer frame crop slightly so the keys are big enough to tap
-    const s = Math.min(stageW / (stageW < 700 ? 860 : 1120), stageH / needH, 1.25);
+    const s = Math.min(stageW / (stageW < 700 ? 860 : 1120), stageH / needH, maxS, 1.25);
     root.parentElement.style.setProperty('--s', s.toFixed(4));
     return s;
   }

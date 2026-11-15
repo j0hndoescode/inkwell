@@ -342,8 +342,27 @@
 
   function fitDesk() {
     if (view !== 'desk') return;
-    const s = Machine.fit(stage.clientWidth, stage.clientHeight);
-    Fx.setLayout('desk', stage.clientHeight - 6 - 540 * s); // the far edge of the table, a little behind the desk mat
+    const desk = $('desk');
+    const vv = window.visualViewport;
+    if (quillOn && vv) {
+      // The phone keyboard covers the bottom of the screen: fit the desk into what's still visible.
+      desk.style.top = vv.offsetTop + 'px';
+      desk.style.height = vv.height + 'px';
+      desk.style.bottom = 'auto';
+    } else {
+      desk.style.top = desk.style.height = desk.style.bottom = '';
+    }
+    const h = stage.clientHeight;
+    let drop = 0, s;
+    if (quillOn) {
+      // Keep the printing line, the platen and ~10+ lines of paper on screen; the machine's keys sink out of view.
+      s = Machine.fit(stage.clientWidth, Infinity, (h - 80) / (QUILL_BELOW + 10 * CFG.LH));
+      drop = (MACH.H - MACH.PY - QUILL_BELOW) * s;
+    } else {
+      s = Machine.fit(stage.clientWidth, h);
+    }
+    stage.style.setProperty('--drop', drop.toFixed(1) + 'px');
+    Fx.setLayout('desk', h - 6 + drop - 540 * s); // the far edge of the table, a little behind the desk mat
   }
 
   // ---- where the carriage is: page, line, column ----
@@ -453,6 +472,7 @@
     if (end && WRITES.includes(a.type)) cur = endPos(lastIdx());
     updateMeta(false);
     if (changed) touch();
+    if (quillOn && !a.quill) quillSeed();
   }
 
   function strikeFx(ch) {
@@ -843,6 +863,113 @@
     if (hintGone) return;
     hintGone = true;
     $('hint').classList.add('gone');
+    $('hint-touch').classList.add('gone');
+  }
+
+  // ---------------- quill: the phone's own keyboard ----------------
+  /* Phones have no physical keyboard, and the typewriter's keys are small. The quill focuses a hidden textarea so the
+     phone's keyboard comes up; whatever it changes in that textarea is replayed on the typewriter as keystrokes
+     (a deleted letter is a backspace, so even the keyboard's own corrections come out as real typing).
+     The textarea always starts with a newline (so there is something to backspace over at the start of a line,
+     and the keyboard capitalises the first word), followed by the current line up to the carriage. */
+  const quill = $('quill-input');
+  const QUILL_BELOW = 120; // design px of machine kept visible under the printing line
+  const QUILL_NORM = { '\u2018': "'", '\u2019': "'", '\u201A': "'", '\u201C': '"', '\u201D': '"', '\u201E': '"',
+    '\u2013': '-', '\u2014': '--', '\u2026': '...', '\u00A0': ' ', '\r': '' };
+  let quillOn = false, quillPrev = '', quillComposing = false, quillSeedAt = '', kbSeen = false;
+
+  function quillSeed() {
+    if (!quillOn || quillComposing || !book) return;
+    const line = linesOf(cur.p)[cur.row] || '';
+    quillPrev = '\n' + line.slice(Math.max(0, cur.col - 80), cur.col);
+    quill.value = quillPrev;
+    quill.setSelectionRange(quillPrev.length, quillPrev.length);
+    quillSeedAt = `${cur.p}:${cur.row}`;
+  }
+
+  /** Only characters the typewriter can put on paper; curly quotes and dashes become their typewriter forms. */
+  function quillClean(t) {
+    let out = '';
+    for (const ch of t) {
+      const c = QUILL_NORM[ch] !== undefined ? QUILL_NORM[ch] : ch;
+      if (c === '\n' || c === '\t' || /^[\x20-\x7E\u00A1-\u00FF]*$/.test(c)) out += c;
+    }
+    return out;
+  }
+
+  function quillInput() {
+    if (!quillOn) return;
+    const now = quill.value, prev = quillPrev;
+    let i = 0;
+    const n = Math.min(now.length, prev.length);
+    while (i < n && now[i] === prev[i]) i++;
+    const removed = prev.length - i;
+    const added = quillClean(now.slice(i));
+    quillPrev = prev.slice(0, i) + added;
+    Sound.init();
+    for (let k = 0; k < removed; k++) act({ type: 'backspace', quill: true });
+    for (let ch of added) {
+      if (ch === '\n') act({ type: 'return', quill: true });
+      else if (ch === '\t') act({ type: 'tab', quill: true });
+      else {
+        if (shiftLock && /^[a-z]$/.test(ch)) ch = ch.toUpperCase();
+        act({ type: 'char', ch, quill: true });
+      }
+    }
+    if (quillComposing) return; // never rewrite the field under the keyboard while it is composing a word
+    // start over when the line changed, the guard newline was eaten, something was cleaned away, or it got long
+    if (quillSeedAt !== `${cur.p}:${cur.row}` || quillPrev[0] !== '\n' || quill.value !== quillPrev || quillPrev.length > 200) quillSeed();
+  }
+
+  function setQuill(on) {
+    if (on === quillOn) return;
+    quillOn = on;
+    kbSeen = false;
+    document.body.classList.toggle('quill-on', on);
+    $('btn-quill').setAttribute('aria-pressed', String(on));
+    if (on) { quillSeed(); hideHint(); }
+    else quill.value = quillPrev = '';
+    fitDesk();
+    if (on) place('none');
+  }
+
+  quill.addEventListener('focus', () => setQuill(true));
+  quill.addEventListener('blur', () => setQuill(false));
+  quill.addEventListener('input', quillInput);
+  quill.addEventListener('compositionstart', () => { quillComposing = true; });
+  quill.addEventListener('compositionend', () => { quillComposing = false; quillInput(); });
+  // keep the textarea's own caret at the end: the carriage is moved on the page, not in here
+  quill.addEventListener('select', () => {
+    if (!quillComposing && quill.selectionStart !== quill.value.length) quill.setSelectionRange(quill.value.length, quill.value.length);
+  });
+  // a hardware keyboard (tablets): moving around the page works as it does on a computer
+  const QUILL_KEYS = { ...NAV, Home: ['home'], End: ['end'], Delete: ['delete'], Tab: ['tab'] };
+  quill.addEventListener('keydown', (e) => {
+    const k = QUILL_KEYS[e.key];
+    if (!k || e.metaKey || e.ctrlKey || e.altKey) return;
+    e.preventDefault();
+    act({ type: k[0], d: k[1] });
+  });
+
+  // Tapping the quill shouldn't steal focus from the textarea (that would close the keyboard before the click).
+  $('btn-quill').addEventListener('pointerdown', (e) => e.preventDefault());
+  $('btn-quill').addEventListener('click', () => {
+    Sound.init();
+    if (quillOn) quill.blur();
+    else quill.focus({ preventScroll: true });
+  });
+
+  if (window.visualViewport) {
+    const onVV = () => {
+      if (!quillOn) return;
+      // Android can hide the keyboard (back button) without blurring the field: notice and put the desk back.
+      const open = visualViewport.height < window.innerHeight * 0.8;
+      if (open) kbSeen = true;
+      else if (kbSeen) { quill.blur(); return; }
+      fitDesk();
+    };
+    visualViewport.addEventListener('resize', onVV);
+    visualViewport.addEventListener('scroll', onVV);
   }
 
   // ---------------- desk toolbar ----------------

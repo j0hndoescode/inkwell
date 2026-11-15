@@ -20,6 +20,8 @@ still lets you fix a typo without correction fluid.
 
 **Write on a real-feeling typewriter**
 - Type with your keyboard, or click the keys on screen.
+- On a phone or tablet, tap **Quill** to write with the device's own keyboard. The typewriter types out every letter,
+  and the page moves up so it stays visible above the keyboard.
 - Each key press swings a typebar up to the paper, lifts the ribbon and moves the carriage along.
 - A bell rings near the end of the line. If a word runs past the margin, it moves down to the next line for you.
 - Pressing Enter (or clicking the lever on the left) slides the carriage back and feeds the paper up a line.

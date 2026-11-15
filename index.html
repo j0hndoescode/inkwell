@@ -50,6 +50,12 @@
       <b>Enter</b> carriage return · <b>Backspace</b> erase · <b>⌘/Ctrl&nbsp;S</b> save point<br>
       To fix a mistake, click the letter on the page, scroll, or use the <b>arrow keys</b>. <b>Page Up/Down</b> flips sheets.
     </div>
+    <div class="hint hint-touch" id="hint-touch">
+      Tap the <b>Quill</b> to write with your phone's own keyboard, or tap the typewriter's keys.<br>
+      To fix a mistake, tap the letter on the page.
+    </div>
+    <textarea class="quill-input" id="quill-input" aria-label="Quill: type here to write on the page" rows="1"
+      autocapitalize="sentences" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="enter"></textarea>
   </div>
 
   <header class="desk-bar">
@@ -66,6 +72,9 @@
     </div>
     <div class="desk-actions">
       <span class="save-status" id="save-status">Saved</span>
+      <button class="bar-btn quill-btn" id="btn-quill" title="Write with your phone's keyboard" aria-pressed="false">
+        <svg viewBox="0 0 24 24"><path d="M20 3C13 4 8 8 6 15l-1.5 6M20 3c-1 5-4 9-9 11l-5 1M20 3l-9 9"/></svg><span>Quill</span>
+      </button>
       <button class="bar-btn" id="btn-savepoint" title="Make a save point (⌘/Ctrl S)">
         <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Save point</span>
       </button>
