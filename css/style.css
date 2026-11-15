@@ -826,3 +826,24 @@ body.focus .stage::after {
   will-change: transform;
 }
 .amb-video.on { opacity: 1; }
+
+/* ---- quill: write with the phone's own keyboard ---- */
+.quill-btn, .hint-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .quill-btn { display: inline-flex; }
+  .quill-btn span { display: inline !important; }
+  .quill-btn { padding: 7px 12px 7px 10px !important; border-color: rgba(214, 178, 94, .75); color: var(--gold-hi); }
+  .hint-touch { display: block; }
+  #hint { display: none; }
+}
+.quill-btn[aria-pressed="true"] { background: var(--gold); color: #2a1a0c; border-color: var(--gold-hi); }
+.quill-input {
+  position: fixed; left: 0; top: 0; width: 1px; height: 1px; padding: 0; border: 0; margin: 0;
+  opacity: 0; resize: none; overflow: hidden; pointer-events: none;
+  font-size: 16px; /* anything smaller makes iOS zoom in on focus */
+  color: transparent; caret-color: transparent; background: transparent;
+}
+/* With the phone keyboard up, the machine's own keys aren't needed: sink the machine so the page fills what's left. */
+body.quill-on .machine { bottom: calc(6px - var(--drop, 0px)); }
+body.quill-on .blotter { bottom: calc(-40px * var(--s) - var(--drop, 0px)); }
+body.quill-on .manuscript, body.quill-on .hint { display: none; }
