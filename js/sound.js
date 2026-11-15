@@ -37,10 +37,14 @@ const Sound = (() => {
   let ambience = null, hum = null;
 
   function makeBuffers(c) {
-    const w = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+    // Two seconds is enough for every random start offset and for seamless
+    // looping ambience. Keeping both buffers compact makes the first user
+    // gesture much cheaper, particularly on mobile Safari.
+    const seconds = 2;
+    const w = c.createBuffer(1, c.sampleRate * seconds, c.sampleRate);
     const d = w.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const b = c.createBuffer(1, c.sampleRate * 4, c.sampleRate);
+    const b = c.createBuffer(1, c.sampleRate * seconds, c.sampleRate);
     const e = b.getChannelData(0);
     let last = 0;
     for (let i = 0; i < e.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; e[i] = last * 3.5; }
