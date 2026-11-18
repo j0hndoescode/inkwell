@@ -16,6 +16,7 @@
   let shiftOnce = false, shiftLock = false, physShift = false;
   let editingId = null;
   let saveTimer = 0;
+  let sessionBookId = null, sessionStartWords = 0;
 
   const stage = $('stage');
 
@@ -202,6 +203,7 @@
   function goLibrary() {
     clearTimeout(saveTimer);
     persist();
+    sessionBookId = null;
     renderLibrary();
     showView('library');
   }
@@ -405,7 +407,10 @@
     if (!book) return;
     if (withWords || book._words === undefined) book._words = countWords(book.pages);
     const n = book.pages.length;
-    const meta = `page ${cur.p + 1} of ${n} · line ${cur.row + 1}/${ROWS} · ${book._words.toLocaleString()} words`;
+    const sessionWords = book._words - sessionStartWords;
+    const sessionLabel = sessionWords > 0 ? `+${sessionWords.toLocaleString()}`
+      : sessionWords < 0 ? `−${Math.abs(sessionWords).toLocaleString()}` : '0';
+    const meta = `page ${cur.p + 1} of ${n} · line ${cur.row + 1}/${ROWS} · ${book._words.toLocaleString()} words · ${sessionLabel} this session`;
     if ($('desk-meta').textContent !== meta) $('desk-meta').textContent = meta;
     if ($('ms-count').textContent !== String(n)) $('ms-count').textContent = n;
     const atFirst = cur.p === 0, atLast = cur.p >= n - 1;
@@ -422,6 +427,10 @@
 
   function openDesk(b) {
     book = b;
+    if (sessionBookId !== b.id) {
+      sessionBookId = b.id;
+      sessionStartWords = countWords(b.pages);
+    }
     showView('desk');
     claimBook(b.id);
     $('desk-book-title').textContent = b.title || 'Untitled';
